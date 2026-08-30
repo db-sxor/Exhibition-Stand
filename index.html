@@ -103,8 +103,6 @@
 <div id="toast"></div>
 
 <script>
-// 배포한 Apps Script 웹 앱 URL로 교체하세요.
-// (Apps Script 배포 → 웹 앱 → URL 복사)
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
 
 const PART_THEME = [
@@ -112,6 +110,8 @@ const PART_THEME = [
   { bg: "#E3ECFA", text: "#2A5CA8", border: "#C4D7F5" },
   { bg: "#FBE9D9", text: "#B9691E", border: "#F2CFAA" },
 ];
+
+const LOGIN_STORAGE_KEY = "jeonsidae_current_user";
 
 const state = {
   data: null,       // { days, names, signups }
@@ -146,6 +146,15 @@ async function fetchState() {
     const res = await fetch(API_URL);
     state.data = await res.json();
     state.loadError = false;
+
+    if (!state.currentUser) {
+      const saved = localStorage.getItem(LOGIN_STORAGE_KEY);
+      if (saved && state.data.names.includes(saved)) {
+        state.currentUser = saved;
+      } else if (saved) {
+        localStorage.removeItem(LOGIN_STORAGE_KEY);
+      }
+    }
   } catch (e) {
     state.loadError = true;
   }
@@ -190,19 +199,21 @@ function attemptLogin() {
   const name = state.nameInput.trim();
   if (!name) return;
   if (!state.data.names.includes(name)) {
-    state.loginError = "등록된 이름이 아니에요. 이름을 다시 확인해주세요.";
+    state.loginError = "등록되지 않은 사용자입니다";
     render();
     return;
   }
   state.loginError = "";
   state.currentUser = name;
   state.nameInput = "";
+  localStorage.setItem(LOGIN_STORAGE_KEY, name);
   render();
 }
 
 function logout() {
   state.currentUser = null;
   state.loginError = "";
+  localStorage.removeItem(LOGIN_STORAGE_KEY);
   render();
 }
 
@@ -245,7 +256,7 @@ function render() {
         <div class="login-card">
           <h1 class="login-title">전시대 신청</h1>
           <div class="search-box">
-            <input id="name-input" class="search-input" placeholder="이름 입력" value="${escapeHtml(state.nameInput)}" />
+            <input id="name-input" class="search-input" placeholder="이름 입력" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(state.nameInput)}" />
           </div>
           ${state.loginError ? `<div class="login-error">${escapeHtml(state.loginError)}</div>` : ""}
           <button class="main-btn" id="login-btn" style="margin-top:12px;">
