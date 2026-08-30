@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>전시대 신청</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #F6F7F9;
+    color: #1D2433;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  }
+  #page { min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
+
+  /* login */
+  .login-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .login-card {
+    width: 100%; max-width: 360px; background: #fff; border: 1px solid #E4E7EC;
+    border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 10px rgba(20,25,40,0.05);
+  }
+  .login-title { margin: 0; font-size: 20px; font-weight: 800; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px; border: 1px solid #E4E7EC;
+    border-radius: 10px; padding: 10px 12px; background: #FAFBFC; margin-top: 16px;
+  }
+  .search-input { border: none; outline: none; background: transparent; font-size: 15px; flex: 1; color: #1D2433; font-family: inherit; }
+  .login-error { color: #C4453A; font-size: 12.5px; margin-top: 8px; }
+
+  /* app */
+  .app-wrap { max-width: 920px; margin: 0 auto; width: 100%; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .user-name { font-weight: 700; font-size: 15px; }
+
+  .ghost-btn {
+    display: flex; align-items: center; gap: 6px; background: transparent; border: 1px solid #E4E7EC;
+    color: #6B7280; font-size: 12.5px; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  }
+  .ghost-btn:hover { background: #EFF1F4; }
+
+  .notice { margin-bottom: 18px; background: #fff; border: 1px solid #E4E7EC; border-radius: 16px; padding: 18px 20px; }
+  .notice-title { font-weight: 800; font-size: 15px; margin-bottom: 12px; }
+  .notice-items { display: flex; flex-direction: column; gap: 12px; }
+  .notice-item { display: flex; gap: 10px; align-items: flex-start; }
+  .notice-badge {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: #EEF1F4; color: #5B6472;
+    font-size: 11.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .notice-text { font-size: 14px; color: #40485A; line-height: 1.65; }
+
+  .days-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .day-card { background: #fff; border: 1px solid #E4E7EC; border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(20,25,40,0.04); }
+  .day-header { margin-bottom: 14px; }
+  .day-title { font-size: 22px; font-weight: 900; letter-spacing: -0.3px; }
+  .location-line { font-size: 19px; font-weight: 800; color: #374151; margin-top: 2px; }
+  .leader-badge {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px; background: #FBF6EC;
+    border: 1px solid #F0E4C8; border-radius: 10px; padding: 8px 12px; flex-wrap: wrap;
+  }
+  .leader-badge-label { font-size: 11.5px; color: #9A7B2E; font-weight: 700; }
+  .leader-badge-name { font-size: 14.5px; font-weight: 800; color: #3A3120; }
+  .leader-badge-phone { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; font-weight: 800; color: #9A7B2E; text-decoration: none; }
+
+  .main-btn {
+    width: 100%; padding: 13px; border: none; border-radius: 12px; background: #1F5F5B; color: #fff;
+    font-size: 15px; font-weight: 800; cursor: pointer; letter-spacing: -0.2px; font-family: inherit;
+  }
+  .main-btn:hover:not(:disabled) { background: #184A47; }
+  .main-btn:disabled { background: #D8DCE2; color: #9AA2AF; cursor: not-allowed; }
+  .main-btn-cancel { background: #fff; color: #C4453A; border: 1.5px solid #F0C4C0; }
+  .main-btn-cancel:hover:not(:disabled) { background: #FCEEED; }
+  .main-btn-inner { display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%; }
+
+  .parts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .part-col { min-width: 0; border: 1px solid; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .part-head { padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .part-time-block { font-weight: 800; font-size: 12.5px; line-height: 1.35; text-align: center; }
+  .part-count { font-size: 11px; opacity: 0.85; text-align: center; }
+  .slot-list { padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .slot-row { font-size: 12.5px; padding: 5px 7px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; color: #374151; }
+  .slot-empty { color: #C7CCD4; }
+
+  .mini-btn {
+    display: flex; align-items: center; justify-content: center; gap: 4px; margin: 0 6px 6px; padding: 6px 0;
+    background: transparent; border: 1px solid #E4E7EC; color: #8B93A1; font-size: 11.5px; border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .mini-btn:hover:not(:disabled) { background: #F1F2F4; color: #5B6472; }
+  .mini-btn:disabled { color: #C7CCD4; cursor: not-allowed; }
+  .mini-btn-cancel { color: #C4453A; border-color: #F0C4C0; }
+  .mini-btn-cancel:hover:not(:disabled) { background: #FCEEED; }
+
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="page"></div>
+<div id="toast"></div>
+
+<script>
+// 배포한 Apps Script 웹 앱 URL로 교체하세요.
+// (Apps Script 배포 → 웹 앱 → URL 복사)
+const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
+
+const PART_THEME = [
+  { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
+  { bg: "#E3ECFA", text: "#2A5CA8", border: "#C4D7F5" },
+  { bg: "#FBE9D9", text: "#B9691E", border: "#F2CFAA" },
+];
+
+const state = {
+  data: null,       // { days, names, signups }
+  loadError: false,
+  currentUser: null,
+  nameInput: "",
+  loginError: "",
+  busyKey: null,
+  toast: null,
+};
+let toastTimer = null;
+
+// ── 아이콘 (lucide 스타일 인라인 SVG) ─────────────────────
+function icon(name, size = 14) {
+  const inner = {
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    logOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+    logIn: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
+    phone: '<path d="M13.8 16.6a1 1 0 0 0 1.2-.3l.4-.5a2 2 0 0 1 1.6-.8h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.5.4a1 1 0 0 0-.3 1.2 14 14 0 0 0 6.4 6.4"/>',
+  }[name] || "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ── 데이터 로드 / API 호출 ─────────────────────────────────
+async function fetchState() {
+  try {
+    const res = await fetch(API_URL);
+    state.data = await res.json();
+    state.loadError = false;
+  } catch (e) {
+    state.loadError = true;
+  }
+  render();
+}
+
+async function callApi(action, dayId, partId) {
+  const key = partId ? dayId + partId : dayId + "-all";
+  state.busyKey = key;
+  render();
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, dayId, partId, name: state.currentUser }),
+    });
+    const json = await res.json();
+    if (json.error) showToast(json.error);
+    else state.data = json;
+  } catch (e) {
+    showToast("요청에 실패했어요. 다시 시도해주세요.");
+  }
+  state.busyKey = null;
+  render();
+}
+
+function showToast(msg) {
+  state.toast = msg;
+  renderToast();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { state.toast = null; renderToast(); }, 2200);
+}
+
+function renderToast() {
+  const el = document.getElementById("toast");
+  if (state.toast) { el.textContent = state.toast; el.style.display = "block"; }
+  else { el.style.display = "none"; }
+}
+
+// ── 로그인 ─────────────────────────────────────────────────
+function attemptLogin() {
+  const name = state.nameInput.trim();
+  if (!name) return;
+  if (!state.data.names.includes(name)) {
+    state.loginError = "등록된 이름이 아니에요. 이름을 다시 확인해주세요.";
+    render();
+    return;
+  }
+  state.loginError = "";
+  state.currentUser = name;
+  state.nameInput = "";
+  render();
+}
+
+function logout() {
+  state.currentUser = null;
+  state.loginError = "";
+  render();
+}
+
+function isIn(dayId, partId) {
+  return state.data.signups[dayId][partId].includes(state.currentUser);
+}
+function hasRoom(dayId, partId) {
+  const day = state.data.days.find((d) => d.id === dayId);
+  const part = day.parts.find((p) => p.id === partId);
+  return state.data.signups[dayId][partId].length < part.capacity;
+}
+
+// ── 렌더링 ─────────────────────────────────────────────────
+function render() {
+  const page = document.getElementById("page");
+
+  if (state.loadError) {
+    page.innerHTML = `
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <div style="color:#C4453A;text-align:center;">
+          불러오지 못했어요.<br/>
+          <button class="ghost-btn" id="retry-btn" style="margin-top:10px;">다시 시도</button>
+        </div>
+      </div>`;
+    document.getElementById("retry-btn").onclick = () => { state.loadError = false; state.data = null; render(); fetchState(); };
+    return;
+  }
+
+  if (state.data === null) {
+    page.innerHTML = `
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <div style="color:#6B7280;">불러오는 중…</div>
+      </div>`;
+    return;
+  }
+
+  if (!state.currentUser) {
+    page.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <h1 class="login-title">전시대 신청</h1>
+          <div class="search-box">
+            <input id="name-input" class="search-input" placeholder="이름 입력" value="${escapeHtml(state.nameInput)}" />
+          </div>
+          ${state.loginError ? `<div class="login-error">${escapeHtml(state.loginError)}</div>` : ""}
+          <button class="main-btn" id="login-btn" style="margin-top:12px;">
+            <span class="main-btn-inner">${icon("logIn", 16)}로그인</span>
+          </button>
+        </div>
+      </div>`;
+    const input = document.getElementById("name-input");
+    input.focus();
+    input.oninput = (e) => {
+      state.nameInput = e.target.value;
+      if (state.loginError) { state.loginError = ""; }
+    };
+    input.onkeydown = (e) => { if (e.key === "Enter") attemptLogin(); };
+    document.getElementById("login-btn").onclick = attemptLogin;
+    return;
+  }
+
+  page.innerHTML = `
+    <div class="app-wrap">
+      <div class="topbar">
+        <div class="user-name">${escapeHtml(state.currentUser)}</div>
+        <button class="ghost-btn" id="logout-btn">${icon("logOut", 14)}로그아웃</button>
+      </div>
+
+      <div class="notice">
+        <div class="notice-title">안내사항</div>
+        <div class="notice-items">
+          ${[
+            "전시대 봉사의 목적은 성서 연구를 시작하고, 사람들에게 JW.ORG 웹사이트를 소개하고, 관심을 보이는 사람들을 신속하게 돕는 일에 초점을 맞추는 것입니다.",
+            "옷차림은 품위 있고 전문성이 있는 옷을 입어야 합니다.",
+            "출판물을 깔끔하고 품위 있게 진열해야 합니다.",
+          ].map((text, i) => `
+            <div class="notice-item">
+              <div class="notice-badge">${i + 1}</div>
+              <div class="notice-text">${text}</div>
+            </div>`).join("")}
+        </div>
+      </div>
+
+      <div class="days-grid">
+        ${state.data.days.map(renderDayCard).join("")}
+      </div>
+    </div>`;
+
+  document.getElementById("logout-btn").onclick = logout;
+
+  state.data.days.forEach((day) => {
+    const mainBtn = document.getElementById(`main-btn-${day.id}`);
+    if (mainBtn && !mainBtn.disabled) {
+      const fullyIn = day.parts.every((p) => isIn(day.id, p.id));
+      mainBtn.onclick = () => callApi(fullyIn ? "cancelAll" : "signAll", day.id);
+    }
+    day.parts.forEach((part) => {
+      const mine = isIn(day.id, part.id);
+      const btn = document.getElementById(`part-btn-${day.id}-${part.id}`);
+      if (btn && !btn.disabled) {
+        btn.onclick = () => callApi(mine ? "cancel" : "sign", day.id, part.id);
+      }
+    });
+  });
+}
+
+function renderDayCard(day) {
+  const myParts = day.parts.filter((p) => isIn(day.id, p.id));
+  const fullyIn = myParts.length === day.parts.length;
+  const noneIn = myParts.length === 0;
+  const allFull = day.parts.every((p) => !hasRoom(day.id, p.id));
+  const allBusy = state.busyKey === day.id + "-all";
+
+  let mainLabel = "모두 신청";
+  if (fullyIn) mainLabel = "모두 취소";
+  else if (!noneIn) mainLabel = "나머지 신청";
+
+  const mainDisabled = allBusy || (noneIn && allFull);
+  const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "모든 파트 마감" : mainLabel;
+
+  return `
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-title">${escapeHtml(day.dateLabel)}</div>
+        <div class="location-line">${escapeHtml(day.location)}</div>
+        <div class="leader-badge">
+          <span class="leader-badge-label">인도자</span>
+          <span class="leader-badge-name">${escapeHtml(day.leaderName)}</span>
+          <a class="leader-badge-phone" href="tel:${escapeHtml(day.leaderPhone)}">${icon("phone", 13)}${escapeHtml(day.leaderPhone)}</a>
+        </div>
+      </div>
+
+      <button id="main-btn-${day.id}" class="main-btn ${fullyIn ? "main-btn-cancel" : ""}" ${mainDisabled ? "disabled" : ""}>
+        ${mainBtnText}
+      </button>
+
+      <div class="parts-row">
+        ${day.parts.map((part, idx) => renderPartCol(day, part, idx)).join("")}
+      </div>
+    </div>`;
+}
+
+function renderPartCol(day, part, idx) {
+  const theme = PART_THEME[idx % PART_THEME.length];
+  const names = state.data.signups[day.id][part.id];
+  const mine = isIn(day.id, part.id);
+  const full = names.length >= part.capacity;
+  const partBusy = state.busyKey === day.id + part.id;
+  const [startTime, endTime] = part.time.split(" ~ ");
+
+  const slots = Array.from({ length: part.capacity }).map((_, i) => {
+    const name = names[i];
+    const isMe = name === state.currentUser;
+    const rowStyle = isMe ? `background:${theme.bg};color:${theme.text};font-weight:700;` : "";
+    return `
+      <div class="slot-row" style="${rowStyle}">
+        ${name ? escapeHtml(name) : `<span class="slot-empty">—</span>`}
+        ${isMe ? icon("check", 13) : ""}
+      </div>`;
+  }).join("");
+
+  const btnHtml = mine
+    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy ? "disabled" : ""}>${icon("x", 12)}취소</button>`
+    : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full ? "disabled" : ""}>${full ? "마감" : "신청"}</button>`;
+
+  return `
+    <div class="part-col" style="border-color:${theme.border};">
+      <div class="part-head" style="background:${theme.bg};color:${theme.text};">
+        <div class="part-time-block"><div>${escapeHtml(startTime)}</div><div>~ ${escapeHtml(endTime)}</div></div>
+        <div class="part-count">${names.length}/${part.capacity}</div>
+      </div>
+      <div class="slot-list">${slots}</div>
+      ${btnHtml}
+    </div>`;
+}
+
+fetchState();
+</script>
+</body>
+</html>
