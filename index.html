@@ -73,6 +73,10 @@
   .main-btn-inner { display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%; }
 
   .parts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .inactive-notice {
+    margin-top: 14px; padding: 16px; border-radius: 12px; background: #F1F2F4; color: #6B7280;
+    text-align: center; font-size: 14px; font-weight: 700;
+  }
   .part-col { min-width: 0; border: 1px solid; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
   .part-head { padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .part-time-block { font-weight: 800; font-size: 12.5px; line-height: 1.35; text-align: center; }
@@ -103,7 +107,9 @@
 <div id="toast"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
+// 배포한 Apps Script 웹 앱 URL로 교체하세요.
+// (Apps Script 배포 → 웹 앱 → URL 복사)
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -199,7 +205,7 @@ function attemptLogin() {
   const name = state.nameInput.trim();
   if (!name) return;
   if (!state.data.names.includes(name)) {
-    state.loginError = "등록되지 않은 사용자입니다";
+    state.loginError = "등록된 이름이 아니에요. 이름을 다시 확인해주세요.";
     render();
     return;
   }
@@ -321,6 +327,17 @@ function render() {
 }
 
 function renderDayCard(day) {
+  if (!day.active) {
+    return `
+      <div class="day-card">
+        <div class="day-header">
+          <div class="day-title">${escapeHtml(day.dateLabel)}</div>
+          <div class="location-line">${escapeHtml(day.location || "없음")}</div>
+        </div>
+        <div class="inactive-notice">이번 주는 신청을 받지 않아요</div>
+      </div>`;
+  }
+
   const myParts = day.parts.filter((p) => isIn(day.id, p.id));
   const fullyIn = myParts.length === day.parts.length;
   const noneIn = myParts.length === 0;
