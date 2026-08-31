@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>재고 관리</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #F6F7F9;
+    color: #1D2433;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  }
+  #page { min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
+
+  .login-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .login-card {
+    width: 100%; max-width: 360px; background: #fff; border: 1px solid #E4E7EC;
+    border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 10px rgba(20,25,40,0.05);
+  }
+  .login-title { margin: 0; font-size: 20px; font-weight: 800; }
+  .login-sub { margin: 6px 0 0; font-size: 12.5px; color: #9AA2AF; }
+  .field-box {
+    display: flex; align-items: center; gap: 8px; border: 1px solid #E4E7EC;
+    border-radius: 10px; padding: 10px 12px; background: #FAFBFC; margin-top: 12px;
+  }
+  .field-input { border: none; outline: none; background: transparent; font-size: 15px; flex: 1; color: #1D2433; font-family: inherit; }
+  .login-error { color: #C4453A; font-size: 12.5px; margin-top: 8px; }
+
+  .app-wrap { max-width: 960px; margin: 0 auto; width: 100%; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .user-name { font-weight: 700; font-size: 15px; }
+  .ghost-btn {
+    display: flex; align-items: center; gap: 6px; background: transparent; border: 1px solid #E4E7EC;
+    color: #6B7280; font-size: 12.5px; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  }
+  .ghost-btn:hover { background: #EFF1F4; }
+
+  .location-section { background: #fff; border: 1px solid #E4E7EC; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .location-title { font-size: 19px; font-weight: 800; margin-bottom: 12px; }
+
+  .table-scroll { overflow-x: auto; }
+  table.stock-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  .stock-table th {
+    text-align: left; font-size: 12px; color: #6B7280; font-weight: 700; padding: 8px 8px;
+    border-bottom: 1px solid #E4E7EC; white-space: nowrap;
+  }
+  .stock-table td { padding: 10px 8px; border-bottom: 1px solid #F1F2F4; font-size: 13.5px; vertical-align: middle; }
+  .item-name { font-weight: 700; }
+  .stock-badge { font-weight: 800; padding: 3px 8px; border-radius: 999px; font-size: 12.5px; display: inline-block; }
+  .stock-ok { background: #E4F2E6; color: #2F7A43; }
+  .stock-zero { background: #FBE3E1; color: #C4453A; }
+  .muted { color: #9AA2AF; font-size: 12px; }
+
+  .qty-form { display: flex; align-items: center; gap: 4px; }
+  .qty-input {
+    width: 56px; border: 1px solid #E4E7EC; border-radius: 8px; padding: 5px 6px; font-size: 13px;
+    font-family: inherit; text-align: center;
+  }
+  .qty-btn {
+    border: none; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; font-weight: 700; color: #fff;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .qty-btn-in { background: #2A5CA8; }
+  .qty-btn-in:hover { background: #204A8A; }
+  .qty-btn-out { background: #B9691E; }
+  .qty-btn-out:hover { background: #9A5717; }
+
+  .add-item-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .add-item-input {
+    flex: 1; min-width: 160px; border: 1px solid #E4E7EC; border-radius: 10px; padding: 9px 12px;
+    font-size: 13.5px; font-family: inherit;
+  }
+  .add-item-btn {
+    border: none; border-radius: 10px; padding: 9px 16px; font-size: 13.5px; font-weight: 800;
+    background: #1F5F5B; color: #fff; cursor: pointer; font-family: inherit;
+  }
+  .add-item-btn:hover { background: #184A47; }
+
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="page"></div>
+<div id="toast"></div>
+
+<script>
+// 신청 사이트와 같은 Apps Script 배포 URL을 그대로 씁니다.
+const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
+
+const ADMIN_STORAGE_KEY = "jeonsidae_stock_admin";
+
+const state = {
+  loggedIn: false,
+  adminName: "",
+  adminPassword: "",
+  nameInput: "",
+  passwordInput: "",
+  loginError: "",
+  items: null,
+  busyKey: null,
+  toast: null,
+  newItemInputs: {}, // location -> 입력 중인 이름
+};
+let toastTimer = null;
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function showToast(msg) {
+  state.toast = msg;
+  renderToast();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { state.toast = null; renderToast(); }, 2400);
+}
+function renderToast() {
+  const el = document.getElementById("toast");
+  if (state.toast) { el.textContent = state.toast; el.style.display = "block"; }
+  else { el.style.display = "none"; }
+}
+
+async function callStockApi(action, extra, credsOverride) {
+  const creds = credsOverride || { adminName: state.adminName, adminPassword: state.adminPassword };
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ app: "stock", action, ...creds, ...extra }),
+    });
+    return await res.json();
+  } catch (e) {
+    return { error: "요청에 실패했어요. 다시 시도해주세요." };
+  }
+}
+
+// ── 로그인 ─────────────────────────────────────────────────
+async function attemptLogin() {
+  const name = state.nameInput.trim();
+  const password = state.passwordInput;
+  if (!name || !password) return;
+
+  state.loginError = "확인 중…";
+  render();
+
+  const json = await callStockApi("login", {}, { adminName: name, adminPassword: password });
+  if (json.error) {
+    state.loginError = json.error;
+    render();
+    return;
+  }
+  state.adminName = name;
+  state.adminPassword = password;
+  state.loggedIn = true;
+  state.items = json.items;
+  state.loginError = "";
+  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ name, password }));
+  render();
+}
+
+function logout() {
+  state.loggedIn = false;
+  state.adminName = "";
+  state.adminPassword = "";
+  state.items = null;
+  localStorage.removeItem(ADMIN_STORAGE_KEY);
+  render();
+}
+
+async function tryAutoLogin() {
+  const saved = localStorage.getItem(ADMIN_STORAGE_KEY);
+  if (!saved) { render(); return; }
+  let creds;
+  try { creds = JSON.parse(saved); } catch (e) { localStorage.removeItem(ADMIN_STORAGE_KEY); render(); return; }
+
+  const json = await callStockApi("list", {}, { adminName: creds.name, adminPassword: creds.password });
+  if (json.error) {
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    render();
+    return;
+  }
+  state.adminName = creds.name;
+  state.adminPassword = creds.password;
+  state.loggedIn = true;
+  state.items = json.items;
+  render();
+}
+
+// ── 재고 조작 ──────────────────────────────────────────────
+async function addAmount(row, field, key) {
+  const input = document.getElementById(`qty-${key}`);
+  const amount = Number(input.value);
+  if (!amount || amount <= 0) { showToast("1 이상의 숫자를 입력해주세요."); return; }
+
+  state.busyKey = key;
+  render();
+  const json = await callStockApi("addAmount", { row, field, amount });
+  if (json.error) showToast(json.error);
+  else state.items = json.items;
+  state.busyKey = null;
+  render();
+}
+
+async function addItem(location) {
+  const key = "new-" + location;
+  const input = document.getElementById(`add-item-${key}`);
+  const name = input.value.trim();
+  if (!name) return;
+
+  state.busyKey = key;
+  render();
+  const json = await callStockApi("addItem", { location, name });
+  if (json.error) showToast(json.error);
+  else { state.items = json.items; delete state.newItemInputs[location]; }
+  state.busyKey = null;
+  render();
+}
+
+// ── 렌더링 ─────────────────────────────────────────────────
+function render() {
+  const page = document.getElementById("page");
+
+  if (!state.loggedIn) {
+    page.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <h1 class="login-title">재고 관리</h1>
+          <p class="login-sub">관리자 이름과 비밀번호를 입력해주세요</p>
+          <div class="field-box">
+            <input id="admin-name-input" class="field-input" placeholder="이름" autocomplete="off" value="${escapeHtml(state.nameInput)}" />
+          </div>
+          <div class="field-box">
+            <input id="admin-pw-input" class="field-input" type="password" placeholder="비밀번호" autocomplete="off" value="${escapeHtml(state.passwordInput)}" />
+          </div>
+          ${state.loginError ? `<div class="login-error">${escapeHtml(state.loginError)}</div>` : ""}
+          <button class="add-item-btn" id="login-btn" style="width:100%;margin-top:12px;">로그인</button>
+        </div>
+      </div>`;
+    const nameInput = document.getElementById("admin-name-input");
+    const pwInput = document.getElementById("admin-pw-input");
+    nameInput.focus();
+    nameInput.oninput = (e) => { state.nameInput = e.target.value; };
+    pwInput.oninput = (e) => { state.passwordInput = e.target.value; };
+    pwInput.onkeydown = (e) => { if (e.key === "Enter") attemptLogin(); };
+    document.getElementById("login-btn").onclick = attemptLogin;
+    return;
+  }
+
+  if (state.items === null) {
+    page.innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:#6B7280;">불러오는 중…</div>`;
+    return;
+  }
+
+  const locations = [];
+  state.items.forEach((it) => { if (!locations.includes(it.location)) locations.push(it.location); });
+
+  page.innerHTML = `
+    <div class="app-wrap">
+      <div class="topbar">
+        <div class="user-name">${escapeHtml(state.adminName)}님 (재고 관리)</div>
+        <button class="ghost-btn" id="logout-btn">로그아웃</button>
+      </div>
+      ${locations.map(renderLocationSection).join("")}
+    </div>`;
+
+  document.getElementById("logout-btn").onclick = logout;
+
+  state.items.forEach((it) => {
+    const inKey = `${it.row}-inbound`;
+    const outKey = `${it.row}-outbound`;
+    const inBtn = document.getElementById(`btn-${inKey}`);
+    const outBtn = document.getElementById(`btn-${outKey}`);
+    if (inBtn && !inBtn.disabled) inBtn.onclick = () => addAmount(it.row, "inbound", inKey);
+    if (outBtn && !outBtn.disabled) outBtn.onclick = () => addAmount(it.row, "outbound", outKey);
+  });
+
+  locations.forEach((loc) => {
+    const key = "new-" + loc;
+    const btn = document.getElementById(`add-btn-${key}`);
+    const input = document.getElementById(`add-item-${key}`);
+    if (btn && !btn.disabled) btn.onclick = () => addItem(loc);
+    if (input) input.onkeydown = (e) => { if (e.key === "Enter") addItem(loc); };
+  });
+}
+
+function renderLocationSection(location) {
+  const items = state.items.filter((it) => it.location === location);
+  const key = "new-" + location;
+  const busy = state.busyKey === key;
+
+  return `
+    <div class="location-section">
+      <div class="location-title">${escapeHtml(location)}</div>
+      <div class="table-scroll">
+        <table class="stock-table">
+          <thead>
+            <tr>
+              <th>출판물 이름</th>
+              <th>재고</th>
+              <th>입고 누계</th>
+              <th>출고 누계</th>
+              <th>입고날짜</th>
+              <th>경과일</th>
+              <th>입고 추가</th>
+              <th>출고 추가</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(renderItemRow).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="add-item-row">
+        <input id="add-item-${key}" class="add-item-input" placeholder="새 출판물 이름" autocomplete="off" />
+        <button id="add-btn-${key}" class="add-item-btn" ${busy ? "disabled" : ""}>${busy ? "추가 중…" : "새 출판물 추가"}</button>
+      </div>
+    </div>`;
+}
+
+function renderItemRow(it) {
+  const stockClass = it.stock <= 0 ? "stock-zero" : "stock-ok";
+  const inKey = `${it.row}-inbound`;
+  const outKey = `${it.row}-outbound`;
+  const inBusy = state.busyKey === inKey;
+  const outBusy = state.busyKey === outKey;
+
+  return `
+    <tr>
+      <td class="item-name">${escapeHtml(it.name)}</td>
+      <td><span class="stock-badge ${stockClass}">${it.stock}</span></td>
+      <td>${it.inbound}</td>
+      <td>${it.outbound}</td>
+      <td>${it.lastInboundDate ? escapeHtml(it.lastInboundDate) : `<span class="muted">-</span>`}</td>
+      <td>${it.elapsedDays === null ? `<span class="muted">-</span>` : it.elapsedDays + "일"}</td>
+      <td>
+        <div class="qty-form">
+          <input id="qty-${inKey}" class="qty-input" type="number" min="1" placeholder="수량" />
+          <button id="btn-${inKey}" class="qty-btn qty-btn-in" ${inBusy ? "disabled" : ""}>${inBusy ? "…" : "입고"}</button>
+        </div>
+      </td>
+      <td>
+        <div class="qty-form">
+          <input id="qty-${outKey}" class="qty-input" type="number" min="1" placeholder="수량" />
+          <button id="btn-${outKey}" class="qty-btn qty-btn-out" ${outBusy ? "disabled" : ""}>${outBusy ? "…" : "출고"}</button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+tryAutoLogin();
+</script>
+</body>
+</html>
