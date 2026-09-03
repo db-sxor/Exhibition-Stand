@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>재고 관리</title>
 <style>
   * { box-sizing: border-box; }
@@ -25,7 +25,7 @@
     display: flex; align-items: center; gap: 8px; border: 1px solid #E4E7EC;
     border-radius: 10px; padding: 10px 12px; background: #FAFBFC; margin-top: 12px;
   }
-  .field-input { border: none; outline: none; background: transparent; font-size: 15px; flex: 1; color: #1D2433; font-family: inherit; }
+  .field-input { border: none; outline: none; background: transparent; font-size: 16px; flex: 1; color: #1D2433; font-family: inherit; }
   .login-error { color: #C4453A; font-size: 12.5px; margin-top: 8px; }
 
   .app-wrap { max-width: 960px; margin: 0 auto; width: 100%; }
@@ -90,7 +90,6 @@
 <div id="toast"></div>
 
 <script>
-// 신청 사이트와 같은 Apps Script 배포 URL을 그대로 씁니다.
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
 
 const ADMIN_STORAGE_KEY = "jeonsidae_stock_admin";
@@ -266,6 +265,10 @@ function render() {
         <button class="ghost-btn" id="logout-btn">로그아웃</button>
       </div>
       ${locations.map(renderLocationSection).join("")}
+
+      <div style="text-align:center;margin-top:18px;">
+        <a href="../" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">전시대 신청</a>
+      </div>
     </div>`;
 
   document.getElementById("logout-btn").onclick = logout;

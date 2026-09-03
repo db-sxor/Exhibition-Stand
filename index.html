@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>전시대 신청</title>
 <style>
   * { box-sizing: border-box; }
@@ -25,7 +25,7 @@
     display: flex; align-items: center; gap: 8px; border: 1px solid #E4E7EC;
     border-radius: 10px; padding: 10px 12px; background: #FAFBFC; margin-top: 16px;
   }
-  .search-input { border: none; outline: none; background: transparent; font-size: 15px; flex: 1; color: #1D2433; font-family: inherit; }
+  .search-input { border: none; outline: none; background: transparent; font-size: 16px; flex: 1; color: #1D2433; font-family: inherit; }
   .login-error { color: #C4453A; font-size: 12.5px; margin-top: 8px; }
 
   /* app */
@@ -290,7 +290,7 @@ function render() {
         <div class="notice-title">안내사항</div>
         <div class="notice-items">
           ${[
-            "전시대 봉사의 목적은 성서 연구를 시작하고, 사람들에게 JW.ORG 웹사이트를 소개하고, 관심을 보이는 사람들을 신속하게 돕는 일에 초점을 맞추는 것입니다.",
+            "전시대 봉사의 목적은 성서 연구를 시작하고,<br>사람들에게 JW.ORG 웹사이트를 소개하고,<br>관심을 보이는 사람들을<br>신속하게 돕는 일에 초점을 맞추는 것입니다.",
             "옷차림은 품위 있고 전문성이 있는 옷을 입어야 합니다.",
             "출판물을 깔끔하고 품위 있게 진열해야 합니다.",
           ].map((text, i) => `
@@ -306,7 +306,7 @@ function render() {
       </div>
 
       <div style="text-align:center;margin-top:18px;">
-        <a href="./stock/" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">재고 관리 (관리자)</a>
+        <a href="./stock/" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">재고 관리</a>
       </div>
     </div>`;
 
@@ -343,15 +343,16 @@ function renderDayCard(day) {
   const myParts = day.parts.filter((p) => isIn(day.id, p.id));
   const fullyIn = myParts.length === day.parts.length;
   const noneIn = myParts.length === 0;
-  const allFull = day.parts.every((p) => !hasRoom(day.id, p.id));
+  const remainingParts = day.parts.filter((p) => !isIn(day.id, p.id));
+  const remainingFull = remainingParts.length > 0 && remainingParts.every((p) => !hasRoom(day.id, p.id));
   const allBusy = state.busyKey === day.id + "-all";
 
   let mainLabel = "모두 신청";
   if (fullyIn) mainLabel = "모두 취소";
   else if (!noneIn) mainLabel = "나머지 신청";
 
-  const mainDisabled = allBusy || (noneIn && allFull);
-  const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "모든 파트 마감" : mainLabel;
+  const mainDisabled = allBusy || (!fullyIn && remainingFull);
+  const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "신청 마감" : mainLabel;
 
   return `
     <div class="day-card">
