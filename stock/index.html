@@ -112,6 +112,7 @@ const ADMIN_STORAGE_KEY = "jeonsidae_stock_admin";
 
 const state = {
   loggedIn: false,
+  autoLoggingIn: true,
   adminName: "",
   adminPassword: "",
   nameInput: "",
@@ -189,13 +190,14 @@ function logout() {
 
 async function tryAutoLogin() {
   const saved = localStorage.getItem(ADMIN_STORAGE_KEY);
-  if (!saved) { render(); return; }
+  if (!saved) { state.autoLoggingIn = false; render(); return; }
   let creds;
-  try { creds = JSON.parse(saved); } catch (e) { localStorage.removeItem(ADMIN_STORAGE_KEY); render(); return; }
+  try { creds = JSON.parse(saved); } catch (e) { localStorage.removeItem(ADMIN_STORAGE_KEY); state.autoLoggingIn = false; render(); return; }
 
   const json = await callStockApi("list", {}, { adminName: creds.name, adminPassword: creds.password });
   if (json.error) {
     localStorage.removeItem(ADMIN_STORAGE_KEY);
+    state.autoLoggingIn = false;
     render();
     return;
   }
@@ -203,6 +205,7 @@ async function tryAutoLogin() {
   state.adminPassword = creds.password;
   state.loggedIn = true;
   state.items = json.items;
+  state.autoLoggingIn = false;
   render();
 }
 
@@ -239,6 +242,16 @@ async function addItem(location) {
 // ── 렌더링 ─────────────────────────────────────────────────
 function render() {
   const page = document.getElementById("page");
+
+  if (state.autoLoggingIn) {
+    document.body.classList.add("no-scroll");
+    page.innerHTML = `
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text">불러오는 중…</div>
+      </div>`;
+    return;
+  }
 
   if (!state.loggedIn) {
     document.body.classList.add("no-scroll");
@@ -378,6 +391,7 @@ function renderItemRow(it) {
     </tr>`;
 }
 
+render();
 tryAutoLogin();
 </script>
 </body>
