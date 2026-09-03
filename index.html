@@ -11,7 +11,13 @@
     background: #F6F7F9;
     color: #1D2433;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
   }
+  input, textarea { user-select: text; -webkit-user-select: text; }
   #page { min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
 
   /* login */
@@ -290,7 +296,7 @@ function render() {
         <div class="notice-title">안내사항</div>
         <div class="notice-items">
           ${[
-            "전시대 봉사의 목적은 성서 연구를 시작하고,<br>사람들에게 JW.ORG 웹사이트를 소개하고,<br>관심을 보이는 사람들을<br>신속하게 돕는 일에 초점을 맞추는 것입니다.",
+            "전시대 봉사의 목적은 성서 연구를 시작하고, 사람들에게 JW.ORG 웹사이트를 소개하고, 관심을 보이는 사람들을 신속하게 돕는 일에 초점을 맞추는 것입니다.",
             "옷차림은 품위 있고 전문성이 있는 옷을 입어야 합니다.",
             "출판물을 깔끔하고 품위 있게 진열해야 합니다.",
           ].map((text, i) => `

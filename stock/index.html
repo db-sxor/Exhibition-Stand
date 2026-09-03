@@ -11,7 +11,13 @@
     background: #F6F7F9;
     color: #1D2433;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
   }
+  input, textarea { user-select: text; -webkit-user-select: text; }
   #page { min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
 
   .login-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
@@ -229,7 +235,6 @@ function render() {
       <div class="login-wrap">
         <div class="login-card">
           <h1 class="login-title">재고 관리</h1>
-          <p class="login-sub">관리자 이름과 비밀번호를 입력해주세요</p>
           <div class="field-box">
             <input id="admin-name-input" class="field-input" placeholder="이름" autocomplete="off" value="${escapeHtml(state.nameInput)}" />
           </div>
@@ -261,7 +266,7 @@ function render() {
   page.innerHTML = `
     <div class="app-wrap">
       <div class="topbar">
-        <div class="user-name">${escapeHtml(state.adminName)}님 (재고 관리)</div>
+        <div class="user-name">재고 관리</div>
         <button class="ghost-btn" id="logout-btn">로그아웃</button>
       </div>
       ${locations.map(renderLocationSection).join("")}
