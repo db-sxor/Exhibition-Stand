@@ -399,11 +399,18 @@ function renderDayCard(day) {
 
 function renderPartCol(day, part, idx) {
   const theme = PART_THEME[idx % PART_THEME.length];
-  const names = state.data.signups[day.id][part.id];
   const mine = isIn(day.id, part.id);
-  const full = names.length >= part.capacity;
+  const rawNames = state.data.signups[day.id][part.id];
+  const full = rawNames.length >= part.capacity;
   const partBusy = state.busyKey === day.id + part.id;
   const [startTime, endTime] = part.time.split(" ~ ");
+
+  // 해당 날짜에서 각 사람이 총 몇 개의 파트에 신청했는지 계산한 후 정렬 (3개 -> 2개 -> 1개)
+  const names = [...rawNames].sort((a, b) => {
+    const countA = day.parts.filter((p) => state.data.signups[day.id][p.id].includes(a)).length;
+    const countB = day.parts.filter((p) => state.data.signups[day.id][p.id].includes(b)).length;
+    return countB - countA;
+  });
 
   const slots = Array.from({ length: part.capacity }).map((_, i) => {
     const name = names[i];
@@ -424,7 +431,7 @@ function renderPartCol(day, part, idx) {
     <div class="part-col" style="border-color:${theme.border};">
       <div class="part-head" style="background:${theme.bg};color:${theme.text};">
         <div class="part-time-block"><div>${escapeHtml(startTime)}</div><div>~ ${escapeHtml(endTime)}</div></div>
-        <div class="part-count">${names.length}/${part.capacity}</div>
+        <div class="part-count">${rawNames.length}/${part.capacity}</div>
       </div>
       <div class="slot-list">${slots}</div>
       ${btnHtml}
