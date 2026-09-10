@@ -246,6 +246,21 @@ function hasRoom(dayId, partId) {
   return state.data.signups[dayId][partId].length < part.capacity;
 }
 
+// dateLabel(예: "9월 9일 수요일")을 파싱해서 오늘보다 지난 날짜인지 확인
+function isPastDay(day) {
+  const m = String(day.dateLabel || "").match(/(\d+)\s*월\s*(\d+)\s*일/);
+  if (!m) return false;
+  const month = parseInt(m[1], 10) - 1;
+  const dateNum = parseInt(m[2], 10);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let target = new Date(now.getFullYear(), month, dateNum);
+  const YEAR_MS = 300 * 24 * 60 * 60 * 1000;
+  if (target - today > YEAR_MS) target = new Date(now.getFullYear() - 1, month, dateNum);
+  else if (today - target > YEAR_MS) target = new Date(now.getFullYear() + 1, month, dateNum);
+  return target < today;
+}
+
 // ── 렌더링 ─────────────────────────────────────────────────
 function render() {
   const page = document.getElementById("page");
@@ -367,12 +382,13 @@ function renderDayCard(day) {
   const remainingParts = day.parts.filter((p) => !isIn(day.id, p.id));
   const remainingFull = remainingParts.length > 0 && remainingParts.every((p) => !hasRoom(day.id, p.id));
   const allBusy = state.busyKey === day.id + "-all";
+  const past = isPastDay(day);
 
   let mainLabel = "모두 신청";
   if (fullyIn) mainLabel = "모두 취소";
   else if (!noneIn) mainLabel = "나머지 신청";
 
-  const mainDisabled = allBusy || (!fullyIn && remainingFull);
+  const mainDisabled = allBusy || past || (!fullyIn && remainingFull);
   const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "신청 마감" : mainLabel;
 
   return `
@@ -403,6 +419,7 @@ function renderPartCol(day, part, idx) {
   const rawNames = state.data.signups[day.id][part.id];
   const full = rawNames.length >= part.capacity;
   const partBusy = state.busyKey === day.id + part.id;
+  const past = isPastDay(day);
   const [startTime, endTime] = part.time.split(" ~ ");
 
   // 해당 날짜에서 각 사람이 총 몇 개의 파트에 신청했는지 계산한 후 정렬 (3개 -> 2개 -> 1개)
@@ -424,8 +441,8 @@ function renderPartCol(day, part, idx) {
   }).join("");
 
   const btnHtml = mine
-    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy ? "disabled" : ""}>${icon("x", 12)}취소</button>`
-    : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full ? "disabled" : ""}>${full ? "마감" : "신청"}</button>`;
+    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy || past ? "disabled" : ""}>${icon("x", 12)}${past ? "마감" : "취소"}</button>`
+    : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full || past ? "disabled" : ""}>${past || full ? "마감" : "신청"}</button>`;
 
   return `
     <div class="part-col" style="border-color:${theme.border};">
