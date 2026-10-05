@@ -444,7 +444,8 @@ function render() {
         ${state.data.days.map(renderDayCard).join("")}
       </div>
 
-      <div style="text-align:center;margin-top:18px;">
+      <div style="text-align:center;margin-top:18px;display:flex;gap:14px;justify-content:center;">
+        ${isStandalone ? "" : `<a href="#" id="footer-install-link" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">홈 화면에 추가</a>`}
         <a href="./stock/" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">재고 관리</a>
       </div>
     </div>`;
@@ -453,6 +454,10 @@ function render() {
   if (showInstall) {
     document.getElementById("install-btn").onclick = clickInstall;
     document.getElementById("install-dismiss-btn").onclick = dismissInstallBanner;
+  }
+  const footerInstallLink = document.getElementById("footer-install-link");
+  if (footerInstallLink) {
+    footerInstallLink.onclick = (e) => { e.preventDefault(); clickInstall(); };
   }
 
   state.data.days.forEach((day) => {
