@@ -119,20 +119,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { color: #6B7280; font-size: 13.5px; }
 
-  .install-banner {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    background: #1F5F5B; color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;
-  }
-  .install-banner-text { font-size: 14.5px; font-weight: 700; line-height: 1.4; }
-  .install-banner-btns { display: flex; gap: 8px; flex-shrink: 0; }
-  .install-btn {
-    background: #fff; color: #1F5F5B; border: none; border-radius: 999px; padding: 9px 16px;
-    font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap;
-  }
-  .install-dismiss-btn {
-    background: transparent; color: #CFE3E1; border: none; font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1;
-  }
-
   .install-guide-overlay {
     position: fixed; inset: 0; background: rgba(29,36,51,0.55); display: flex; align-items: center; justify-content: center;
     padding: 24px; z-index: 50;
@@ -186,7 +172,6 @@ const state = {
 };
 let toastTimer = null;
 
-const INSTALL_DISMISS_KEY = "jeonsidae_install_dismissed";
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 
@@ -197,22 +182,14 @@ window.addEventListener("beforeinstallprompt", (e) => {
 });
 window.addEventListener("appinstalled", () => {
   state.deferredInstallPrompt = null;
-  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
   render();
 });
-
-function shouldShowInstallBanner() {
-  if (isStandalone) return false;
-  if (localStorage.getItem(INSTALL_DISMISS_KEY) === "1") return false;
-  return isIOS || !!state.deferredInstallPrompt;
-}
 
 async function clickInstall() {
   if (state.deferredInstallPrompt) {
     state.deferredInstallPrompt.prompt();
     await state.deferredInstallPrompt.userChoice;
     state.deferredInstallPrompt = null;
-    localStorage.setItem(INSTALL_DISMISS_KEY, "1");
     render();
   } else if (isIOS) {
     state.showInstallGuide = true;
@@ -220,16 +197,9 @@ async function clickInstall() {
   }
 }
 
-function dismissInstallBanner() {
-  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
-  render();
-}
-
 function closeInstallGuide() {
   state.showInstallGuide = false;
-  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
   renderInstallGuide();
-  render();
 }
 
 function renderInstallGuide() {
@@ -409,17 +379,8 @@ function render() {
   }
 
   document.body.classList.remove("no-scroll");
-  const showInstall = shouldShowInstallBanner();
   page.innerHTML = `
     <div class="app-wrap">
-      ${showInstall ? `
-      <div class="install-banner">
-        <div class="install-banner-text">홈 화면에 추가하면<br/>더 빠르고 간편하게 열 수 있어요</div>
-        <div class="install-banner-btns">
-          <button class="install-btn" id="install-btn">추가하기</button>
-          <button class="install-dismiss-btn" id="install-dismiss-btn">✕</button>
-        </div>
-      </div>` : ""}
       <div class="topbar">
         <div class="user-name">${escapeHtml(state.currentUser)}</div>
         <button class="ghost-btn" id="logout-btn">${icon("logOut", 14)}로그아웃</button>
@@ -445,19 +406,15 @@ function render() {
       </div>
 
       <div style="text-align:center;margin-top:18px;display:flex;gap:14px;justify-content:center;">
-        ${isStandalone ? "" : `<a href="#" id="footer-install-link" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">홈 화면에 추가</a>`}
+        ${isStandalone ? "" : `<button id="footer-install-link" style="font-size:11.5px;color:#B7BCC5;background:none;border:none;padding:0;font-family:inherit;cursor:pointer;">홈 화면에 추가</button>`}
         <a href="./stock/" style="font-size:11.5px;color:#B7BCC5;text-decoration:none;">재고 관리</a>
       </div>
     </div>`;
 
   document.getElementById("logout-btn").onclick = logout;
-  if (showInstall) {
-    document.getElementById("install-btn").onclick = clickInstall;
-    document.getElementById("install-dismiss-btn").onclick = dismissInstallBanner;
-  }
   const footerInstallLink = document.getElementById("footer-install-link");
   if (footerInstallLink) {
-    footerInstallLink.onclick = (e) => { e.preventDefault(); clickInstall(); };
+    footerInstallLink.onclick = clickInstall;
   }
 
   state.data.days.forEach((day) => {
