@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>전시대 신청</title>
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<link rel="icon" href="./icon-192.png" />
+<meta name="theme-color" content="#1F5F5B" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="전시대 신청" />
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; }
@@ -111,6 +119,37 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { color: #6B7280; font-size: 13.5px; }
 
+  .install-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: #1F5F5B; color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;
+  }
+  .install-banner-text { font-size: 14.5px; font-weight: 700; line-height: 1.4; }
+  .install-banner-btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .install-btn {
+    background: #fff; color: #1F5F5B; border: none; border-radius: 999px; padding: 9px 16px;
+    font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .install-dismiss-btn {
+    background: transparent; color: #CFE3E1; border: none; font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+
+  .install-guide-overlay {
+    position: fixed; inset: 0; background: rgba(29,36,51,0.55); display: flex; align-items: center; justify-content: center;
+    padding: 24px; z-index: 50;
+  }
+  .install-guide-card { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 340px; width: 100%; }
+  .install-guide-title { font-size: 19px; font-weight: 900; margin-bottom: 18px; }
+  .install-guide-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+  .install-guide-num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #1F5F5B; color: #fff;
+    font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .install-guide-step-text { font-size: 15.5px; line-height: 1.5; font-weight: 700; padding-top: 3px; }
+  .install-guide-close {
+    width: 100%; margin-top: 4px; padding: 12px; border: none; border-radius: 12px; background: #F1F2F4;
+    color: #5B6472; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+
   #toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
     padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 10;
@@ -121,6 +160,7 @@
 
 <div id="page"></div>
 <div id="toast"></div>
+<div id="install-guide"></div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
@@ -141,8 +181,77 @@ const state = {
   loginError: "",
   busyKey: null,
   toast: null,
+  deferredInstallPrompt: null,
+  showInstallGuide: false,
 };
 let toastTimer = null;
+
+const INSTALL_DISMISS_KEY = "jeonsidae_install_dismissed";
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  state.deferredInstallPrompt = e;
+  render();
+});
+window.addEventListener("appinstalled", () => {
+  state.deferredInstallPrompt = null;
+  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
+  render();
+});
+
+function shouldShowInstallBanner() {
+  if (isStandalone) return false;
+  if (localStorage.getItem(INSTALL_DISMISS_KEY) === "1") return false;
+  return isIOS || !!state.deferredInstallPrompt;
+}
+
+async function clickInstall() {
+  if (state.deferredInstallPrompt) {
+    state.deferredInstallPrompt.prompt();
+    await state.deferredInstallPrompt.userChoice;
+    state.deferredInstallPrompt = null;
+    localStorage.setItem(INSTALL_DISMISS_KEY, "1");
+    render();
+  } else if (isIOS) {
+    state.showInstallGuide = true;
+    renderInstallGuide();
+  }
+}
+
+function dismissInstallBanner() {
+  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
+  render();
+}
+
+function closeInstallGuide() {
+  state.showInstallGuide = false;
+  localStorage.setItem(INSTALL_DISMISS_KEY, "1");
+  renderInstallGuide();
+  render();
+}
+
+function renderInstallGuide() {
+  const el = document.getElementById("install-guide");
+  if (!state.showInstallGuide) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="install-guide-overlay" id="install-guide-overlay">
+      <div class="install-guide-card">
+        <div class="install-guide-title">홈 화면에 추가하기</div>
+        <div class="install-guide-step">
+          <div class="install-guide-num">1</div>
+          <div class="install-guide-step-text">화면 아래쪽의 공유 아이콘을 눌러주세요</div>
+        </div>
+        <div class="install-guide-step">
+          <div class="install-guide-num">2</div>
+          <div class="install-guide-step-text">목록에서 '홈 화면에 추가'를 눌러주세요</div>
+        </div>
+        <button class="install-guide-close" id="install-guide-close-btn">확인했어요</button>
+      </div>
+    </div>`;
+  document.getElementById("install-guide-close-btn").onclick = closeInstallGuide;
+}
 
 // ── 아이콘 (lucide 스타일 인라인 SVG) ─────────────────────
 function icon(name, size = 14) {
@@ -246,21 +355,6 @@ function hasRoom(dayId, partId) {
   return state.data.signups[dayId][partId].length < part.capacity;
 }
 
-// dateLabel(예: "9월 9일 수요일")을 파싱해서 오늘보다 지난 날짜인지 확인
-function isPastDay(day) {
-  const m = String(day.dateLabel || "").match(/(\d+)\s*월\s*(\d+)\s*일/);
-  if (!m) return false;
-  const month = parseInt(m[1], 10) - 1;
-  const dateNum = parseInt(m[2], 10);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let target = new Date(now.getFullYear(), month, dateNum);
-  const YEAR_MS = 300 * 24 * 60 * 60 * 1000;
-  if (target - today > YEAR_MS) target = new Date(now.getFullYear() - 1, month, dateNum);
-  else if (today - target > YEAR_MS) target = new Date(now.getFullYear() + 1, month, dateNum);
-  return target < today;
-}
-
 // ── 렌더링 ─────────────────────────────────────────────────
 function render() {
   const page = document.getElementById("page");
@@ -315,8 +409,17 @@ function render() {
   }
 
   document.body.classList.remove("no-scroll");
+  const showInstall = shouldShowInstallBanner();
   page.innerHTML = `
     <div class="app-wrap">
+      ${showInstall ? `
+      <div class="install-banner">
+        <div class="install-banner-text">홈 화면에 추가하면<br/>더 빠르고 간편하게 열 수 있어요</div>
+        <div class="install-banner-btns">
+          <button class="install-btn" id="install-btn">추가하기</button>
+          <button class="install-dismiss-btn" id="install-dismiss-btn">✕</button>
+        </div>
+      </div>` : ""}
       <div class="topbar">
         <div class="user-name">${escapeHtml(state.currentUser)}</div>
         <button class="ghost-btn" id="logout-btn">${icon("logOut", 14)}로그아웃</button>
@@ -347,6 +450,10 @@ function render() {
     </div>`;
 
   document.getElementById("logout-btn").onclick = logout;
+  if (showInstall) {
+    document.getElementById("install-btn").onclick = clickInstall;
+    document.getElementById("install-dismiss-btn").onclick = dismissInstallBanner;
+  }
 
   state.data.days.forEach((day) => {
     const mainBtn = document.getElementById(`main-btn-${day.id}`);
@@ -382,14 +489,20 @@ function renderDayCard(day) {
   const remainingParts = day.parts.filter((p) => !isIn(day.id, p.id));
   const remainingFull = remainingParts.length > 0 && remainingParts.every((p) => !hasRoom(day.id, p.id));
   const allBusy = state.busyKey === day.id + "-all";
-  const past = isPastDay(day);
 
   let mainLabel = "모두 신청";
   if (fullyIn) mainLabel = "모두 취소";
   else if (!noneIn) mainLabel = "나머지 신청";
 
-  const mainDisabled = allBusy || past || (!fullyIn && remainingFull);
+  const mainDisabled = allBusy || (!fullyIn && remainingFull);
   const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "신청 마감" : mainLabel;
+
+  const partCount = {};
+  day.parts.forEach((part) => {
+    (state.data.signups[day.id][part.id] || []).forEach((n) => {
+      partCount[n] = (partCount[n] || 0) + 1;
+    });
+  });
 
   return `
     <div class="day-card">
@@ -408,29 +521,22 @@ function renderDayCard(day) {
       </button>
 
       <div class="parts-row">
-        ${day.parts.map((part, idx) => renderPartCol(day, part, idx)).join("")}
+        ${day.parts.map((part, idx) => renderPartCol(day, part, idx, partCount)).join("")}
       </div>
     </div>`;
 }
 
-function renderPartCol(day, part, idx) {
+function renderPartCol(day, part, idx, partCount) {
   const theme = PART_THEME[idx % PART_THEME.length];
+  const names = state.data.signups[day.id][part.id];
+  const sortedNames = names.slice().sort((a, b) => (partCount[b] || 0) - (partCount[a] || 0));
   const mine = isIn(day.id, part.id);
-  const rawNames = state.data.signups[day.id][part.id];
-  const full = rawNames.length >= part.capacity;
+  const full = names.length >= part.capacity;
   const partBusy = state.busyKey === day.id + part.id;
-  const past = isPastDay(day);
   const [startTime, endTime] = part.time.split(" ~ ");
 
-  // 해당 날짜에서 각 사람이 총 몇 개의 파트에 신청했는지 계산한 후 정렬 (3개 -> 2개 -> 1개)
-  const names = [...rawNames].sort((a, b) => {
-    const countA = day.parts.filter((p) => state.data.signups[day.id][p.id].includes(a)).length;
-    const countB = day.parts.filter((p) => state.data.signups[day.id][p.id].includes(b)).length;
-    return countB - countA;
-  });
-
   const slots = Array.from({ length: part.capacity }).map((_, i) => {
-    const name = names[i];
+    const name = sortedNames[i];
     const isMe = name === state.currentUser;
     const rowStyle = isMe ? `background:${theme.bg};color:${theme.text};font-weight:700;` : "";
     return `
@@ -441,14 +547,14 @@ function renderPartCol(day, part, idx) {
   }).join("");
 
   const btnHtml = mine
-    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy || past ? "disabled" : ""}>${icon("x", 12)}${past ? "마감" : "취소"}</button>`
-    : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full || past ? "disabled" : ""}>${past || full ? "마감" : "신청"}</button>`;
+    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy ? "disabled" : ""}>${icon("x", 12)}취소</button>`
+    : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full ? "disabled" : ""}>${full ? "마감" : "신청"}</button>`;
 
   return `
     <div class="part-col" style="border-color:${theme.border};">
       <div class="part-head" style="background:${theme.bg};color:${theme.text};">
         <div class="part-time-block"><div>${escapeHtml(startTime)}</div><div>~ ${escapeHtml(endTime)}</div></div>
-        <div class="part-count">${rawNames.length}/${part.capacity}</div>
+        <div class="part-count">${names.length}/${part.capacity}</div>
       </div>
       <div class="slot-list">${slots}</div>
       ${btnHtml}
