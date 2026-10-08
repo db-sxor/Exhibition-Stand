@@ -136,6 +136,10 @@
     color: #5B6472; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
   }
 
+  #app-version {
+    position: fixed; bottom: 6px; right: 10px; font-size: 10px; color: #C7CCD4; pointer-events: none; z-index: 1;
+  }
+
   #toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
     padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 10;
@@ -147,6 +151,7 @@
 <div id="page"></div>
 <div id="toast"></div>
 <div id="install-guide"></div>
+<div id="app-version">v1.8.2</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
@@ -456,7 +461,7 @@ function renderDayCard(day) {
   if (fullyIn) mainLabel = "모두 취소";
   else if (!noneIn) mainLabel = "나머지 신청";
 
-  const mainDisabled = allBusy || (!fullyIn && remainingFull);
+  const mainDisabled = allBusy || day.closed || (!fullyIn && remainingFull);
   const mainBtnText = allBusy ? "처리 중…" : mainDisabled ? "신청 마감" : mainLabel;
 
   const partCount = {};
@@ -508,7 +513,9 @@ function renderPartCol(day, part, idx, partCount) {
       </div>`;
   }).join("");
 
-  const btnHtml = mine
+  const btnHtml = day.closed
+    ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" disabled>마감</button>`
+    : mine
     ? `<button id="part-btn-${day.id}-${part.id}" class="mini-btn mini-btn-cancel" ${partBusy ? "disabled" : ""}>${icon("x", 12)}취소</button>`
     : `<button id="part-btn-${day.id}-${part.id}" class="mini-btn" ${partBusy || full ? "disabled" : ""}>${full ? "마감" : "신청"}</button>`;
 
