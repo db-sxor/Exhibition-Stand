@@ -136,9 +136,7 @@
     color: #5B6472; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
   }
 
-  #app-version {
-    position: fixed; bottom: 6px; right: 10px; font-size: 10px; color: #C7CCD4; pointer-events: none; z-index: 1;
-  }
+  .version-label { font-size: 10px; color: #A9AFBA; line-height: 1.2; }
 
   #toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
@@ -151,10 +149,10 @@
 <div id="page"></div>
 <div id="toast"></div>
 <div id="install-guide"></div>
-<div id="app-version">v1.8.2</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
+const APP_VERSION = "1.8.3";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -353,6 +351,7 @@ function render() {
       <div class="loading-wrap">
         <div class="spinner"></div>
         <div class="loading-text">불러오는 중…</div>
+        <div class="version-label">v${APP_VERSION}</div>
       </div>`;
     return;
   }
@@ -370,6 +369,7 @@ function render() {
           <button class="main-btn" id="login-btn" style="margin-top:12px;">
             <span class="main-btn-inner">${icon("logIn", 16)}로그인</span>
           </button>
+          <div style="text-align:center;margin-top:14px;"><div class="version-label">v${APP_VERSION}</div></div>
         </div>
       </div>`;
     const input = document.getElementById("name-input");
@@ -387,7 +387,10 @@ function render() {
   page.innerHTML = `
     <div class="app-wrap">
       <div class="topbar">
-        <div class="user-name">${escapeHtml(state.currentUser)}</div>
+        <div>
+          <div class="user-name">${escapeHtml(state.currentUser)}</div>
+          <div class="version-label">v${APP_VERSION}</div>
+        </div>
         <button class="ghost-btn" id="logout-btn">${icon("logOut", 14)}로그아웃</button>
       </div>
 

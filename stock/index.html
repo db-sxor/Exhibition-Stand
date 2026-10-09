@@ -94,9 +94,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { color: #6B7280; font-size: 13.5px; }
 
-  #app-version {
-    position: fixed; bottom: 6px; right: 10px; font-size: 10px; color: #C7CCD4; pointer-events: none; z-index: 1;
-  }
+  .version-label { font-size: 10px; color: #A9AFBA; line-height: 1.2; }
 
   #toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D2433; color: #fff;
@@ -108,10 +106,10 @@
 
 <div id="page"></div>
 <div id="toast"></div>
-<div id="app-version">v1.8.2</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
+const APP_VERSION = "1.8.3";
 
 const ADMIN_STORAGE_KEY = "jeonsidae_stock_admin";
 
@@ -254,6 +252,7 @@ function render() {
       <div class="loading-wrap">
         <div class="spinner"></div>
         <div class="loading-text">불러오는 중…</div>
+        <div class="version-label">v${APP_VERSION}</div>
       </div>`;
     return;
   }
@@ -272,6 +271,7 @@ function render() {
           </div>
           ${state.loginError ? `<div class="login-error">${escapeHtml(state.loginError)}</div>` : ""}
           <button class="add-item-btn" id="login-btn" style="width:100%;margin-top:12px;">로그인</button>
+          <div style="text-align:center;margin-top:14px;"><div class="version-label">v${APP_VERSION}</div></div>
         </div>
       </div>`;
     const nameInput = document.getElementById("admin-name-input");
@@ -290,6 +290,7 @@ function render() {
       <div class="loading-wrap">
         <div class="spinner"></div>
         <div class="loading-text">불러오는 중…</div>
+        <div class="version-label">v${APP_VERSION}</div>
       </div>`;
     return;
   }
@@ -302,7 +303,10 @@ function render() {
   page.innerHTML = `
     <div class="app-wrap">
       <div class="topbar">
-        <div class="user-name">재고 관리</div>
+        <div>
+          <div class="user-name">재고 관리</div>
+          <div class="version-label">v${APP_VERSION}</div>
+        </div>
         <button class="ghost-btn" id="logout-btn">로그아웃</button>
       </div>
       ${locations.map(renderLocationSection).join("")}
