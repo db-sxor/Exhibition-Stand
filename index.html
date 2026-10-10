@@ -75,6 +75,12 @@
   .leader-badge-label { font-size: 11.5px; color: #9A7B2E; font-weight: 700; }
   .leader-badge-name { font-size: 14.5px; font-weight: 800; color: #3A3120; }
   .leader-badge-phone { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; font-weight: 800; color: #9A7B2E; text-decoration: none; }
+  .leader-badge-empty { font-size: 14.5px; font-weight: 800; color: #B7A67C; }
+  .leader-badge-btn {
+    margin-left: auto; background: #fff; border: 1px solid #E6D6A8; color: #9A7B2E; font-size: 12px; font-weight: 800;
+    padding: 6px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  }
+  .leader-badge-btn:hover { background: #FFF9E8; }
 
   .main-btn {
     width: 100%; padding: 13px; border: none; border-radius: 12px; background: #1F5F5B; color: #fff;
@@ -136,6 +142,16 @@
     color: #5B6472; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
   }
 
+  .dialog-text { font-size: 17px; font-weight: 800; line-height: 1.5; text-align: center; }
+  .dialog-sub { font-size: 13px; color: #6B7280; text-align: center; margin-top: 8px; }
+  .dialog-btns { display: flex; gap: 8px; margin-top: 22px; }
+  .dialog-cancel, .dialog-confirm {
+    flex: 1; padding: 13px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+  .dialog-cancel { background: #F1F2F4; color: #5B6472; }
+  .dialog-confirm { background: #1F5F5B; color: #fff; }
+  .dialog-cancel:disabled, .dialog-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+
   .version-label { font-size: 10px; color: #A9AFBA; line-height: 1.2; }
 
   #toast {
@@ -149,10 +165,11 @@
 <div id="page"></div>
 <div id="toast"></div>
 <div id="install-guide"></div>
+<div id="leader-dialog"></div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
-const APP_VERSION = "1.8.3";
+const APP_VERSION = "1.9.0";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -172,6 +189,8 @@ const state = {
   toast: null,
   deferredInstallPrompt: null,
   showInstallGuide: false,
+  leaderDialog: null,
+  leaderBusy: false,
 };
 let toastTimer = null;
 
@@ -203,6 +222,71 @@ async function clickInstall() {
 function closeInstallGuide() {
   state.showInstallGuide = false;
   renderInstallGuide();
+}
+
+function josaRo(word) {
+  const code = word.charCodeAt(word.length - 1);
+  if (code < 0xAC00 || code > 0xD7A3) return "로";
+  const jong = (code - 0xAC00) % 28;
+  return jong === 0 || jong === 8 ? "로" : "으로";
+}
+
+function openLeaderDialog(dayId, mode) {
+  state.leaderDialog = { dayId, mode };
+  renderLeaderDialog();
+}
+
+function closeLeaderDialog() {
+  if (state.leaderBusy) return;
+  state.leaderDialog = null;
+  renderLeaderDialog();
+}
+
+async function submitLeaderChange() {
+  const d = state.leaderDialog;
+  if (!d || state.leaderBusy) return;
+  state.leaderBusy = true;
+  renderLeaderDialog();
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: d.mode === "set" ? "setLeader" : "clearLeader", dayId: d.dayId, name: state.currentUser }),
+    });
+    const json = await res.json();
+    if (json.error) showToast(json.error);
+    else state.data = json;
+  } catch (e) {
+    showToast("요청에 실패했어요. 다시 시도해주세요.");
+  }
+  state.leaderBusy = false;
+  state.leaderDialog = null;
+  renderLeaderDialog();
+  render();
+}
+
+function renderLeaderDialog() {
+  const el = document.getElementById("leader-dialog");
+  const d = state.leaderDialog;
+  if (!d) { el.innerHTML = ""; return; }
+
+  const day = state.data.days.find((x) => x.id === d.dayId);
+  const target = d.mode === "set" ? state.currentUser : "미정";
+  const other = d.mode === "set" && day.leaderName && day.leaderName !== state.currentUser ? day.leaderName : "";
+
+  el.innerHTML = `
+    <div class="install-guide-overlay">
+      <div class="install-guide-card">
+        <div class="dialog-text">인도자를 ${escapeHtml(target)}${josaRo(target)} 변경할까요?</div>
+        ${other ? `<div class="dialog-sub">현재 인도자: ${escapeHtml(other)}</div>` : ""}
+        <div class="dialog-btns">
+          <button class="dialog-cancel" id="leader-cancel-btn" ${state.leaderBusy ? "disabled" : ""}>취소</button>
+          <button class="dialog-confirm" id="leader-confirm-btn" ${state.leaderBusy ? "disabled" : ""}>${state.leaderBusy ? "처리 중…" : "변경"}</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("leader-cancel-btn").onclick = closeLeaderDialog;
+  document.getElementById("leader-confirm-btn").onclick = submitLeaderChange;
 }
 
 function renderInstallGuide() {
@@ -426,6 +510,13 @@ function render() {
   }
 
   state.data.days.forEach((day) => {
+    const leaderBtn = document.getElementById(`leader-btn-${day.id}`);
+    if (leaderBtn) {
+      leaderBtn.onclick = () => openLeaderDialog(day.id, day.leaderName === state.currentUser ? "clear" : "set");
+    }
+  });
+
+  state.data.days.forEach((day) => {
     const mainBtn = document.getElementById(`main-btn-${day.id}`);
     if (mainBtn && !mainBtn.disabled) {
       const fullyIn = day.parts.every((p) => isIn(day.id, p.id));
@@ -439,6 +530,24 @@ function render() {
       }
     });
   });
+}
+
+function renderLeaderBadge(day) {
+  const isLeaderUser = (state.data.leaders || []).includes(state.currentUser);
+  const mineLead = day.leaderName === state.currentUser;
+  const btn = isLeaderUser && !day.closed
+    ? `<button class="leader-badge-btn" id="leader-btn-${day.id}">${mineLead ? "인도 해제" : "인도 신청"}</button>`
+    : "";
+  const info = day.leaderName
+    ? `<span class="leader-badge-name">${escapeHtml(day.leaderName)}</span>` +
+      (day.leaderPhone ? `<a class="leader-badge-phone" href="tel:${escapeHtml(day.leaderPhone)}">${icon("phone", 13)}${escapeHtml(day.leaderPhone)}</a>` : "")
+    : `<span class="leader-badge-empty">미정</span>`;
+  return `
+        <div class="leader-badge">
+          <span class="leader-badge-label">인도자</span>
+          ${info}
+          ${btn}
+        </div>`;
 }
 
 function renderDayCard(day) {
@@ -479,11 +588,7 @@ function renderDayCard(day) {
       <div class="day-header">
         <div class="day-title">${escapeHtml(day.dateLabel)}</div>
         <div class="location-line">${escapeHtml(day.location)}</div>
-        <div class="leader-badge">
-          <span class="leader-badge-label">인도자</span>
-          <span class="leader-badge-name">${escapeHtml(day.leaderName)}</span>
-          <a class="leader-badge-phone" href="tel:${escapeHtml(day.leaderPhone)}">${icon("phone", 13)}${escapeHtml(day.leaderPhone)}</a>
-        </div>
+        ${renderLeaderBadge(day)}
       </div>
 
       <button id="main-btn-${day.id}" class="main-btn ${fullyIn ? "main-btn-cancel" : ""}" ${mainDisabled ? "disabled" : ""}>
