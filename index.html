@@ -169,7 +169,7 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "1.9.1";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -200,11 +200,9 @@ const isStandalone = window.matchMedia("(display-mode: standalone)").matches || 
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   state.deferredInstallPrompt = e;
-  render();
 });
 window.addEventListener("appinstalled", () => {
   state.deferredInstallPrompt = null;
-  render();
 });
 
 async function clickInstall() {
@@ -213,7 +211,7 @@ async function clickInstall() {
     await state.deferredInstallPrompt.userChoice;
     state.deferredInstallPrompt = null;
     render();
-  } else if (isIOS) {
+  } else {
     state.showInstallGuide = true;
     renderInstallGuide();
   }
@@ -292,17 +290,19 @@ function renderLeaderDialog() {
 function renderInstallGuide() {
   const el = document.getElementById("install-guide");
   if (!state.showInstallGuide) { el.innerHTML = ""; return; }
+  const step1 = isIOS ? "화면 아래쪽의 공유 아이콘을 눌러주세요" : "브라우저 메뉴(점 세 개 ⋮ 또는 선 세 개 ≡)를 눌러주세요";
+  const step2 = isIOS ? "목록에서 '홈 화면에 추가'를 눌러주세요" : "'홈 화면에 추가' 또는 '앱 설치'를 눌러주세요";
   el.innerHTML = `
     <div class="install-guide-overlay" id="install-guide-overlay">
       <div class="install-guide-card">
         <div class="install-guide-title">홈 화면에 추가하기</div>
         <div class="install-guide-step">
           <div class="install-guide-num">1</div>
-          <div class="install-guide-step-text">화면 아래쪽의 공유 아이콘을 눌러주세요</div>
+          <div class="install-guide-step-text">${step1}</div>
         </div>
         <div class="install-guide-step">
           <div class="install-guide-num">2</div>
-          <div class="install-guide-step-text">목록에서 '홈 화면에 추가'를 눌러주세요</div>
+          <div class="install-guide-step-text">${step2}</div>
         </div>
         <button class="install-guide-close" id="install-guide-close-btn">확인했어요</button>
       </div>
