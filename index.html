@@ -150,6 +150,7 @@
   }
   .dialog-cancel { background: #F1F2F4; color: #5B6472; }
   .dialog-confirm { background: #1F5F5B; color: #fff; }
+  .dialog-danger { background: #C4453A; }
   .dialog-cancel:disabled, .dialog-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .version-label { font-size: 10px; color: #A9AFBA; line-height: 1.2; }
@@ -166,10 +167,11 @@
 <div id="toast"></div>
 <div id="install-guide"></div>
 <div id="leader-dialog"></div>
+<div id="cancel-dialog"></div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
-const APP_VERSION = "1.9.1";
+const APP_VERSION = "1.10.0";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -191,6 +193,7 @@ const state = {
   showInstallGuide: false,
   leaderDialog: null,
   leaderBusy: false,
+  cancelDialog: null,
 };
 let toastTimer = null;
 
@@ -287,6 +290,44 @@ function renderLeaderDialog() {
   document.getElementById("leader-confirm-btn").onclick = submitLeaderChange;
 }
 
+function openCancelAllDialog(dayId) {
+  state.cancelDialog = { dayId };
+  renderCancelAllDialog();
+}
+
+function closeCancelAllDialog() {
+  state.cancelDialog = null;
+  renderCancelAllDialog();
+}
+
+function confirmCancelAll() {
+  const d = state.cancelDialog;
+  if (!d) return;
+  closeCancelAllDialog();
+  callApi("cancelAll", d.dayId);
+}
+
+function renderCancelAllDialog() {
+  const el = document.getElementById("cancel-dialog");
+  const d = state.cancelDialog;
+  if (!d) { el.innerHTML = ""; return; }
+
+  const day = state.data.days.find((x) => x.id === d.dayId);
+  el.innerHTML = `
+    <div class="install-guide-overlay">
+      <div class="install-guide-card">
+        <div class="dialog-text">${escapeHtml(day.dateLabel)} 신청을<br/>모두 취소할까요?</div>
+        <div class="dialog-sub">세 파트 신청이 모두 사라져요</div>
+        <div class="dialog-btns">
+          <button class="dialog-cancel" id="cancel-all-back-btn">돌아가기</button>
+          <button class="dialog-confirm dialog-danger" id="cancel-all-confirm-btn">모두 취소</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("cancel-all-back-btn").onclick = closeCancelAllDialog;
+  document.getElementById("cancel-all-confirm-btn").onclick = confirmCancelAll;
+}
+
 function renderInstallGuide() {
   const el = document.getElementById("install-guide");
   if (!state.showInstallGuide) { el.innerHTML = ""; return; }
@@ -330,7 +371,9 @@ function escapeHtml(str) {
 async function fetchState() {
   try {
     const res = await fetch(API_URL);
-    state.data = await res.json();
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    state.data = json;
     state.loadError = false;
 
     if (!state.currentUser) {
@@ -358,8 +401,12 @@ async function callApi(action, dayId, partId) {
       body: JSON.stringify({ action, dayId, partId, name: state.currentUser }),
     });
     const json = await res.json();
-    if (json.error) showToast(json.error);
-    else state.data = json;
+    if (json.error) {
+      showToast(json.error);
+    } else {
+      state.data = json;
+      if (json.notice) showToast(json.notice, 3200);
+    }
   } catch (e) {
     showToast("요청에 실패했어요. 다시 시도해주세요.");
   }
@@ -367,11 +414,11 @@ async function callApi(action, dayId, partId) {
   render();
 }
 
-function showToast(msg) {
+function showToast(msg, ms = 2200) {
   state.toast = msg;
   renderToast();
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { state.toast = null; renderToast(); }, 2200);
+  toastTimer = setTimeout(() => { state.toast = null; renderToast(); }, ms);
 }
 
 function renderToast() {
@@ -520,7 +567,7 @@ function render() {
     const mainBtn = document.getElementById(`main-btn-${day.id}`);
     if (mainBtn && !mainBtn.disabled) {
       const fullyIn = day.parts.every((p) => isIn(day.id, p.id));
-      mainBtn.onclick = () => callApi(fullyIn ? "cancelAll" : "signAll", day.id);
+      mainBtn.onclick = () => (fullyIn ? openCancelAllDialog(day.id) : callApi("signAll", day.id));
     }
     day.parts.forEach((part) => {
       const mine = isIn(day.id, part.id);
