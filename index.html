@@ -69,15 +69,19 @@
   .day-title { font-size: 22px; font-weight: 900; letter-spacing: -0.3px; }
   .location-line { font-size: 19px; font-weight: 800; color: #374151; margin-top: 2px; }
   .leader-badge {
-    display: flex; align-items: center; gap: 8px; margin-top: 10px; background: #FBF6EC;
-    border: 1px solid #F0E4C8; border-radius: 10px; padding: 8px 12px; flex-wrap: wrap;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px;
+    margin-top: 10px; background: #FBF6EC; border: 1px solid #F0E4C8; border-radius: 10px; padding: 8px 12px;
   }
-  .leader-badge-label { font-size: 11.5px; color: #9A7B2E; font-weight: 700; }
-  .leader-badge-name { font-size: 14.5px; font-weight: 800; color: #3A3120; }
-  .leader-badge-phone { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; font-weight: 800; color: #9A7B2E; text-decoration: none; }
-  .leader-badge-empty { font-size: 14.5px; font-weight: 800; color: #B7A67C; }
+  .leader-badge-label { flex-shrink: 0; font-size: 11.5px; color: #9A7B2E; font-weight: 700; }
+  .leader-badge-info { min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+  .leader-badge-name { min-width: 0; font-size: 14.5px; font-weight: 800; color: #3A3120; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leader-badge-phone {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; font-weight: 800;
+    color: #9A7B2E; text-decoration: none; white-space: nowrap;
+  }
+  .leader-badge-empty { min-width: 0; font-size: 14.5px; font-weight: 800; color: #B7A67C; }
   .leader-badge-btn {
-    margin-left: auto; background: #fff; border: 1px solid #E6D6A8; color: #9A7B2E; font-size: 12px; font-weight: 800;
+    flex-shrink: 0; margin-left: 0; background: #fff; border: 1px solid #E6D6A8; color: #9A7B2E; font-size: 12px; font-weight: 800;
     padding: 6px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
   }
   .leader-badge-btn:hover { background: #FFF9E8; }
@@ -171,7 +175,7 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxwO25upCy3_NqtGNsnRFpsnh0fYtTLuJS_ZBhX5bXjjfHiyn3UK69gydhBrtookPcY/exec";
-const APP_VERSION = "1.10.0";
+const APP_VERSION = "1.10.1";
 
 const PART_THEME = [
   { bg: "#E4F2E6", text: "#2F7A43", border: "#BFE1C6" },
@@ -592,7 +596,7 @@ function renderLeaderBadge(day) {
   return `
         <div class="leader-badge">
           <span class="leader-badge-label">인도자</span>
-          ${info}
+          <div class="leader-badge-info">${info}</div>
           ${btn}
         </div>`;
 }
